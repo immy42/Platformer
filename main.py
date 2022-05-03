@@ -10,12 +10,14 @@ yRes = 224
 window = pygame.display.set_mode((xRes, yRes))
 roomX = 512
 roomY = 448
+preLoadRadius = 16
 clock = pygame.time.Clock()
 
 Framerate = 60
 bgColour = (255,255,255)
 
 Platforms = []
+Pictures = []
 
 #Globals -------------------------------------------------------------------------------
 
@@ -30,7 +32,8 @@ sprites = {
     "platform":r"sprites\platform.png",
     "background":r"sprites\background.png",
     "player_idle":[r"sprites\player_idle.png",r"sprites\player_idle_blink.png"],
-    "player_run":[r"sprites\player_run_1.png",r"sprites\player_run_2.png",r"sprites\player_run_3.png",r"sprites\player_run_4.png",r"sprites\player_run_3.png"]
+    "player_run":[r"sprites\player_run_1.png",r"sprites\player_run_2.png",r"sprites\player_run_3.png",r"sprites\player_run_4.png",r"sprites\player_run_3.png"],
+    "player_air":r"sprites\player_air.png"
            }
 
 
@@ -70,22 +73,22 @@ class view:
         self.followObj = followObj
 
     def draw(self,img,x,y):
-        #if x >= self.xview[0] and x <= self.xview[1] and y >= self.yview[0] and y <= self.yview[1] and
-        #^ This can be added before img in the line below to only draw sprites in view, only useful if there are constraints to how many images are visible
-        if img != self.followObj.image:
-            windowXPos = x-self.xview[0]
-            windowYPos = y-self.yview[0]
-            img = pygame.image.load(img).convert_alpha() #Load Sprite
-            window.blit(img,(windowXPos,windowYPos)) #Draw Sprite
-        if img == self.followObj.image:
-            if self.followObj.dir == 1:
+        if x >= self.xview[0]-preLoadRadius and x <= self.xview[1]+preLoadRadius and y >= self.yview[0]-preLoadRadius and y <= self.yview[1]+preLoadRadius:
+        #^ This can be added before img in the line below to only draw sprites in view, only useful if there are constraints to how many images are visible (e.g ram usage)
+            if img != self.followObj.image:
+                windowXPos = x-self.xview[0]
+                windowYPos = y-self.yview[0]
                 img = pygame.image.load(img).convert_alpha() #Load Sprite
-                window.blit(img,(x,y)) #Draw Sprite
-            else:
-                img = pygame.image.load(img).convert_alpha() #Load Sprite
-                img = img.copy()
-                img = pygame.transform.flip(img, True, False)
-                window.blit(img, (x, y))  # Draw Sprite
+                window.blit(img,(windowXPos,windowYPos)) #Draw Sprite
+            if img == self.followObj.image:
+                if self.followObj.dir == 1:
+                    img = pygame.image.load(img).convert_alpha() #Load Sprite
+                    window.blit(img,(x,y)) #Draw Sprite
+                else:
+                    img = pygame.image.load(img).convert_alpha() #Load Sprite
+                    img = img.copy()
+                    img = pygame.transform.flip(img, True, False)
+                    window.blit(img, (x, y))  # Draw Sprite
 
     def update(self):
         if camera == "centered":
@@ -122,10 +125,11 @@ class player:
         
         #Gravity -
         if place_meeting(self.origin,0,1,"platform") == True: #If player on platform
-            #On platform
-            pass
+            if self.status == "air":
+                self.status = "idle"
         else:
             self.Yy += 1
+            self.status = "air"
             pass
         #Gravity =
         
@@ -169,6 +173,9 @@ class player:
                 if self.img_index == 5:
                     self.img_index = 1
                 self.image = sprites["player_run"][self.img_index]
+        if self.status == "air":
+            self.anim_counter_max = 0
+            self.image = sprites["player_air"]
         #Animations -------------------------------
         view.draw(self.image,self.x,self.y)
         self.last_status = self.status
@@ -184,15 +191,32 @@ class platform:
     def update(self):
         view.draw(self.image,self.x,self.y)
 
+
+class picture:
+
+    def __init__(self,img,x,y,layer):
+        Pictures.append(self)
+        self.image = img
+        self.x = x
+        self.y = y
+        self.layer = layer
+
+    def update(self):
+        view.draw(self.image,self.x,self.y)
+
 class background:
 
     def __init__(self):
         self.image = sprites["background"]
-        self.x = 0
-        self.y = 0
+        self.rX = round(roomX/16)
+        self.rY = round(roomY/16)
+        self.Xx = 0
+        self.Yy = 0
+        for ii in range(0,self.rY):
+            for i in range(0,self.rX):
+                picture(self.image,self.Xx+(16*i),self.Yy,"back")
+            self.Yy += 16
 
-    def update(self):
-        view.draw(self.image,self.x,self.y)
     
 #Objects -------------------------------------------------------------------------------
         
@@ -218,15 +242,16 @@ while run:
 
     ########################################################## Debug
 
-    print(player.img_index)
+    #print(player.img_index)
 
     ########################################################## Debug
 
     ########################################################## MAIN
 
     #Update Objs [START]#
-    
-    bg.update()
+
+    for each in Pictures:
+        each.update()
     view.update()
     for each in Platforms:
         each.update()
