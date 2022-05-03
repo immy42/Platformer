@@ -12,7 +12,7 @@ roomX = 512
 roomY = 448
 clock = pygame.time.Clock()
 
-Framerate = 1
+Framerate = 60
 bgColour = (255,255,255)
 
 Platforms = []
@@ -29,9 +29,10 @@ global sprites
 sprites = {
     "platform":r"sprites\platform.png",
     "background":r"sprites\background.png",
-    "player_idle":r"sprites\player_idle.png",
-    "player_idle_blink":r"sprites\player_idle_blink.png"
+    "player_idle":[r"sprites\player_idle.png",r"sprites\player_idle_blink.png"],
+    "player_run":[r"sprites\player_run_1.png",r"sprites\player_run_2.png",r"sprites\player_run_3.png",r"sprites\player_run_4.png",r"sprites\player_run_3.png"]
            }
+
 
 global platforms
 platforms = []
@@ -52,7 +53,7 @@ def place_meeting(xy,offsetX,offsetY,Type):
         for each in Platforms:
             if offsetX == 0:
                 if offsetY > 0:
-                    if x >= each.x and x < each.x+(get_img_size(each.image)[0]) + (get_img_size(each.image)[0]-1) and each.y == y+offsetY: #meeting platform at x,(y + offsetY)
+                    if x >= each.x-(get_img_size(each.image)[0])/2 and x < each.x+(get_img_size(each.image)[0]) + (get_img_size(each.image)[0]-1) and each.y == y+offsetY: #meeting platform at x,(y + offsetY)
                         return True
     return False
 
@@ -77,8 +78,14 @@ class view:
             img = pygame.image.load(img).convert_alpha() #Load Sprite
             window.blit(img,(windowXPos,windowYPos)) #Draw Sprite
         if img == self.followObj.image:
-            img = pygame.image.load(img).convert_alpha() #Load Sprite
-            window.blit(img,(x,y)) #Draw Sprite
+            if self.followObj.dir == 1:
+                img = pygame.image.load(img).convert_alpha() #Load Sprite
+                window.blit(img,(x,y)) #Draw Sprite
+            else:
+                img = pygame.image.load(img).convert_alpha() #Load Sprite
+                img = img.copy()
+                img = pygame.transform.flip(img, True, False)
+                window.blit(img, (x, y))  # Draw Sprite
 
     def update(self):
         if camera == "centered":
@@ -92,53 +99,79 @@ class player:
 
     def __init__(self):
         camera == "centered"
-        self.image = sprites["player_idle"]
+        self.image = sprites["player_idle"][0]
         self.maskWidth = 4
         self.maskHeight = 8
         self.anim_counter = 0
         self.anim_counter_max = 120
+        self.Hspeed = 0
         self.x = xRes/2-round(get_img_size(self.image)[0]/2) #Position on screen (X)
         self.y = yRes/2-round(get_img_size(self.image)[1]/2) #Position on screen (Y)
         self.Xx = self.x #Position in level (X)
         self.Yy = self.y #Position in level (Y)
         self.status = "idle"
+        self.last_status = self.status
+        self.dir = 1
+        self.img_index = 0
         self.origin = self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2) #CollisionPoint
 
     def update(self): #Each frame
         self.origin = self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2) #CollisionPoint
         
-        #Physics ----------------------------------
+        #Physics --
         
         #Gravity -
         if place_meeting(self.origin,0,1,"platform") == True: #If player on platform
             #On platform
             pass
         else:
-            self.Yy += 2
+            self.Yy += 1
             pass
         #Gravity =
         
         #H Movement -
         if key_pressed[RightButton]:
-            player.Xx += 2
+            self.Hspeed = 1
+            self.dir = 1
         if key_pressed[LeftButton]:
-            player.Xx -= 2
+            self.Hspeed = -1
+            self.dir = -1
+        if key_pressed[RightButton] == False and key_pressed[LeftButton] == False:
+            self.Hspeed = 0
+            if self.status == "run":
+                self.status = "idle"
+        if self.status == "idle" and abs(self.Hspeed) == 1:
+            self.status = "run"
+        if self.Hspeed != 0:
+            self.Xx += self.Hspeed
         #H Movement =
             
-        #Physics ----------------------------------
+        #Physics ==
             
         #Animations -------------------------------
         self.anim_counter += 1
         if self.anim_counter > self.anim_counter_max:
             self.anim_counter = 0
+        if self.last_status != self.status:
+            self.anim_counter = 0
+            self.img_index = 0
         if self.status == "idle":
             self.anim_counter_max = 120
             if self.anim_counter >= 110:
-                self.image = sprites["player_idle_blink"]
+                self.image = sprites["player_idle"][1]
             else:
-                self.image = sprites["player_idle"]
+                self.image = sprites["player_idle"][0]
+        if self.status == "run":
+            self.anim_counter_max = 7
+            if self.anim_counter == 0:
+                if self.image in sprites["player_run"]:
+                    self.img_index += 1
+                if self.img_index == 5:
+                    self.img_index = 1
+                self.image = sprites["player_run"][self.img_index]
         #Animations -------------------------------
         view.draw(self.image,self.x,self.y)
+        self.last_status = self.status
 
 class platform:
 
@@ -168,6 +201,8 @@ bg = background()
 view = view(player)
 platform(128,113)
 platform(112,113)
+platform(96,150)
+platform(112,150)
 
 #Objects -------------------------------------------------------------------------------
 
@@ -175,7 +210,7 @@ run = True
 while run:
     
     window.fill((bgColour))
-    #clock.tick(Framerate)
+    clock.tick(Framerate)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
@@ -183,10 +218,7 @@ while run:
 
     ########################################################## Debug
 
-    print("[",str(view.xview[0]),"] Left")
-    print("[",str(view.xview[1]),"] Right")
-    print("[",str(view.yview[0]),"] Top")
-    print("[",str(view.yview[1]),"] Bottom")
+    print(player.img_index)
 
     ########################################################## Debug
 
