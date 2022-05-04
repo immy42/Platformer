@@ -10,7 +10,7 @@ yRes = 224
 window = pygame.display.set_mode((xRes, yRes))
 roomX = 512
 roomY = 448
-preLoadRadius = 16
+preLoadRadius = 32
 clock = pygame.time.Clock()
 
 Framerate = 60
@@ -73,14 +73,14 @@ class view:
         self.followObj = followObj
 
     def draw(self,img,x,y):
-        if x >= self.xview[0]-preLoadRadius and x <= self.xview[1]+preLoadRadius and y >= self.yview[0]-preLoadRadius and y <= self.yview[1]+preLoadRadius:
+        if (x >= self.xview[0]-preLoadRadius and x <= self.xview[1]+preLoadRadius and y >= self.yview[0]-preLoadRadius and y <= self.yview[1]+preLoadRadius) or img == self.followObj.image:
         #^ This can be added before img in the line below to only draw sprites in view, only useful if there are constraints to how many images are visible (e.g ram usage)
             if img != self.followObj.image:
                 windowXPos = x-self.xview[0]
                 windowYPos = y-self.yview[0]
                 img = pygame.image.load(img).convert_alpha() #Load Sprite
                 window.blit(img,(windowXPos,windowYPos)) #Draw Sprite
-            if img == self.followObj.image:
+            else:
                 if self.followObj.dir == 1:
                     img = pygame.image.load(img).convert_alpha() #Load Sprite
                     window.blit(img,(x,y)) #Draw Sprite
@@ -94,10 +94,10 @@ class view:
         if camera == "centered":
             self.followObj.x = xRes/2-(get_img_size(self.followObj.image)[0]/2) #Position on screen (X)
             self.followObj.y = yRes/2-(get_img_size(self.followObj.image)[1])+1 #Position on screen (Y)
-        self.xview = self.followObj.origin[0]-(xRes/2),self.followObj.origin[0]+(xRes/2)
-        self.yview = self.followObj.origin[1]-(yRes/2),self.followObj.origin[1]+(yRes/2)
+        self.xview = self.followObj.origin[0] - (xRes / 2), self.followObj.origin[0] + (xRes / 2)
+        self.yview = self.followObj.origin[1] - (yRes / 2), self.followObj.origin[1] + (yRes / 2)
 
-        
+
 class player:
 
     def __init__(self):
@@ -120,9 +120,9 @@ class player:
 
     def update(self): #Each frame
         self.origin = self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2) #CollisionPoint
-        
+
         #Physics --
-        
+
         #Gravity -
         if place_meeting(self.origin,0,1,"platform") == True: #If player on platform
             if self.status == "air":
@@ -132,7 +132,7 @@ class player:
             self.status = "air"
             pass
         #Gravity =
-        
+
         #H Movement -
         if key_pressed[RightButton]:
             self.Hspeed = 1
@@ -149,9 +149,9 @@ class player:
         if self.Hspeed != 0:
             self.Xx += self.Hspeed
         #H Movement =
-            
+
         #Physics ==
-            
+
         #Animations -------------------------------
         self.anim_counter += 1
         if self.anim_counter > self.anim_counter_max:
@@ -208,18 +208,18 @@ class background:
 
     def __init__(self):
         self.image = sprites["background"]
-        self.rX = round(roomX/16)
-        self.rY = round(roomY/16)
+        self.rX = round(roomX/32)
+        self.rY = round(roomY/32)
         self.Xx = 0
         self.Yy = 0
         for ii in range(0,self.rY):
             for i in range(0,self.rX):
-                picture(self.image,self.Xx+(16*i),self.Yy,"back")
-            self.Yy += 16
+                picture(self.image,self.Xx+(32*i),self.Yy,"back")
+            self.Yy += 32
 
-    
+
 #Objects -------------------------------------------------------------------------------
-        
+
 player = player()
 bg = background()
 view = view(player)
@@ -232,7 +232,7 @@ platform(112,150)
 
 run = True
 while run:
-    
+
     window.fill((bgColour))
     clock.tick(Framerate)
     for event in pygame.event.get():
@@ -249,7 +249,6 @@ while run:
     ########################################################## MAIN
 
     #Update Objs [START]#
-
     for each in Pictures:
         each.update()
     view.update()
@@ -258,10 +257,10 @@ while run:
     player.update()
 
     #Update Objs [END]#
-    
+
     ########################################################## MAIN
     pygame.display.flip()
     pygame.display.update()
-    
+
 pygame.quit()
 exit()
