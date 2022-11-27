@@ -128,11 +128,15 @@ class player:
         self.Xx = self.x #Position in level (X)
         self.Yy = self.y #Position in level (Y)
         self.Vspeed = 0
+        self.JumpSpeed = 0
+        self.MaxJumpSpeed = 4
         self.Gravity = 1
         self.GForce = 0.1
         self.MaxGrav = 2
         self.Falling = 0
         self.Jumping = 0
+        self.CanJump = 0
+        self.JumpSpeedC = 0
         self.status = "idle"
         self.last_status = self.status
         self.dir = 1
@@ -145,16 +149,20 @@ class player:
         #Physics --
         #Gravity -
         if place_meeting(self.origin,self.maskXY,0,1,"platform") == True: #If player on platform
-            if self.status == "air":
+            if self.status == "air" and self.Falling == 1:
                 self.status = "idle"
                 self.Vspeed = 0
                 self.Falling = 0
-                self.Jumping = 0
                 self.Gravity = 1
+                self.Jumping = 0
+                self.CanJump = 1
+                self.JumpSpeed = 2
+                self.JumpSpeedC = 0
         elif self.Gravity == 1:
             if self.Falling == 0:
                 self.Vspeed = 1
                 self.Falling = 1
+                self.CanJump = 0
             else:
                 if self.MaxGrav > self.Vspeed:
                     self.Vspeed = round(self.Vspeed + self.GForce,2) #Change 2 to ? if gravity is to be more than 9.9 in strength
@@ -168,8 +176,31 @@ class player:
 
         #H Movement -
         if key_pressed[JumpButton]:
-            self.status = "air"
-            self.Yy -=2
+            if self.CanJump == 1:
+                self.CanJump = 0
+                self.Jumping = 1
+                self.status = "air"
+                self.Gravity = 0
+            if self.CanJump == 0 and self.Jumping == 1:
+                self.Yy -= self.JumpSpeed
+                if self.JumpSpeed != self.MaxJumpSpeed:
+                    self.JumpSpeedC += 0.1
+                    if self.JumpSpeedC >= 1:
+                        self.JumpSpeedC = 0
+                        self.JumpSpeed += 1
+                else:
+                    self.Jumping = 0
+                    self.Gravity = 1
+                    self.JumpSpeed = 2
+                    self.JumpSpeedC = 0
+        else:
+            if self.Jumping == 1:
+                self.Jumping = 0
+                self.Gravity = 1
+                self.JumpSpeed = 2
+                self.JumpSpeedC = 0
+
+        print(self.JumpSpeedC)
         if key_pressed[DebugButton]:
             self.x = xRes / 2 - round(get_img_size(self.image)[0] / 2)  # Position on screen (X)
             self.y = yRes / 2 - round(get_img_size(self.image)[1] / 2)  # Position on screen (Y)

@@ -5,7 +5,7 @@ import json
 pygame.init()
 windowIcon = pygame.image.load(r"sprites\icon.png")
 pygame.display.set_icon(windowIcon)
-pygame.display.set_caption('Mega Man')
+pygame.display.set_caption('Editor')
 xRes = 256
 yRes = 224
 window = pygame.display.set_mode((xRes, yRes))
