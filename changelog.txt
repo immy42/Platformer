@@ -3,3 +3,7 @@
 * Need to add program ending correctly on 0 lives
 * Added shooting - need to add all sprites
 * Added player projectile, not working
+>>> New idea to fix lag
+Split platform locations within their respective rooms within stage grid. See if player is in x room ,and if
+they are first half or second half of width. Only check collision for platforms within later/earlier half of that room, if later
+check collision of next half of next room's platforms only.

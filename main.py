@@ -1,9 +1,11 @@
+#Import external libraries
 import pygame
 import PIL
 import json
 import math
 import os
 import random
+#Initiate pygame window
 pygame.init()
 windowIcon = pygame.image.load(r"sprites\icon.png")
 pygame.display.set_icon(windowIcon)
@@ -19,6 +21,7 @@ clock = pygame.time.Clock()
 Framerate = 60
 bgColour = (255,255,255)
 
+#Establish object lists
 Platforms = []
 Enemies = []
 Pictures = []
@@ -28,6 +31,7 @@ PlayerProjectiles = []
 
 #Globals -------------------------------------------------------------------------------
 
+#Control config
 RightButton = pygame.K_RIGHT
 LeftButton = pygame.K_LEFT
 JumpButton = pygame.K_z
@@ -56,6 +60,7 @@ sprites = {
 #Globals -------------------------------------------------------------------------------
 
 #Functions -----------------------------------------------------------------------------
+#See documentation
 
 def get_img_size(img):
     from PIL import Image
@@ -93,6 +98,7 @@ def generateStage(w,h):
     LE = JF["exit"]#last exit
     for i in range(0,stageL):
         while True:
+            #Traversable Logic
             LE = JF["exit"]
             with open(r"data\\rooms\\"+random.choice(os.listdir(r"data\rooms"))) as json_file:
                 JF = json.load(json_file)

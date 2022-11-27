@@ -46,5 +46,42 @@ Produce stage with width of w rooms, max height of h. Grabs all available rooms 
 function loadStage using selected stage after processing logic (ensuring entrances/exits are positioned in traversable order).
 Provides next room to load within stage until stage is filled to max width/height. Provides loadStage function with chosen room,
 and the x/y position within the whole stage (on 256x224 grid).
+Example usage:
+generateStage(1,1)
+>>> *see loadStage()
 Dependencies:
 loadStage()
+
+Function name:
+view.draw(self,img,x,y)
+Description:
+Draw [img] on screen at [x,y] position. Draws player/gui image stationary at the same place on screen e.g healthbar. Other images
+drawn relative to their position within the stage.
+Example usage:
+view.draw(self,"test.png",10,10)
+>>> *draws test.png on screen at (10,10)
+Dependencies:
+pygame.blit()
+
+Function name:
+place_meeting(xy,mask,offsetX,offsetY,Type)
+Description:
+xy = origin coordinates of calling object
+mask = width & height of calling object's mask
+offsetX = offset to add to calling object's X position for checking collision (negative = left, positive = right)
+offsetY = offset to add to calling object's Y position for checking collision (negative = up, positive = down)
+Example usage:
+place_meeting(self.origin,self.maskXY,1,0,"enemy")
+>>> *returns True if enemy found at calling object's x,y position to the right by 1 pixel, else False.
+Dependencies:
+None
+
+Function name:
+update()
+Description:
+Incorporated within most objects to call view.draw() to draw self.image upon screen. Update is uaully only called when object's coordinates within view on screen.'
+Example usage:
+obj.update()
+>>> *usually either draws image or updates x/y position.
+Dependencies:
+None
