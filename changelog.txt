@@ -1,1 +1,1 @@
-fixed dynamic gravity and collision updating origin point consistently
+adding jump - need to edit place_meeting
