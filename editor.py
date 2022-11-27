@@ -259,7 +259,6 @@ class menu:
             try:
                 self.hasLoaded = 1
                 with open(r"data\to_import.json") as json_file:
-                    print("opened")
                     JF = json.load(json_file)
                 json_file.close()
                 loadStage(JF)

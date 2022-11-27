@@ -38,7 +38,9 @@ sprites = {
     "background":r"sprites\background.png",
     "player_idle":[r"sprites\player_idle.png",r"sprites\player_idle_blink.png"],
     "player_run":[r"sprites\player_run_1.png",r"sprites\player_run_2.png",r"sprites\player_run_3.png",r"sprites\player_run_4.png",r"sprites\player_run_3.png"],
-    "player_air":r"sprites\player_air.png"
+    "player_air":r"sprites\player_air.png",
+    "player_hp":r"sprites\player_health.png",
+    "player_hpN":r"sprites\player_health_loss.png"
            }
 
 
@@ -118,9 +120,9 @@ class view:
         self.followObj = followObj
 
     def draw(self,img,x,y):
-        if (x >= self.xview[0]-preLoadRadius and x <= self.xview[1]+preLoadRadius and y >= self.yview[0]-preLoadRadius and y <= self.yview[1]+preLoadRadius) or img == self.followObj.image:
+        if (x >= self.xview[0]-preLoadRadius and x <= self.xview[1]+preLoadRadius and y >= self.yview[0]-preLoadRadius and y <= self.yview[1]+preLoadRadius) or img == self.followObj.image or img == sprites["player_hp"]:
         #^ This can be added before img in the line below to only draw sprites in view, only useful if there are constraints to how many images are visible (e.g ram usage)
-            if img != self.followObj.image:
+            if img != self.followObj.image and img != sprites["player_hp"]:
                 windowXPos = x-self.xview[0]
                 windowYPos = y-self.yview[0]
                 img = pygame.image.load(img).convert_alpha() #Load Sprite
@@ -162,7 +164,7 @@ class player:
         self.JumpSpeed = 0
         self.MaxJumpSpeed = 4
         self.Gravity = 1
-        self.GForce = 0.1
+        self.GForce = 0.05
         self.MaxGrav = 2
         self.Falling = 0
         self.Jumping = 0
@@ -172,6 +174,8 @@ class player:
         self.last_status = self.status
         self.dir = 1
         self.img_index = 0
+        self.hp = 24
+        self.hpN = 0
         self.origin = [self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2)] #CollisionPoint
 
     def update(self): #Each frame
@@ -208,6 +212,7 @@ class player:
         #H Movement -
         if key_pressed[JumpButton]:
             if self.CanJump == 1:
+                self.hpN += 1
                 self.CanJump = 0
                 self.Jumping = 1
                 self.status = "air"
@@ -231,7 +236,6 @@ class player:
                 self.JumpSpeed = 2
                 self.JumpSpeedC = 0
 
-        print(self.JumpSpeedC)
         if key_pressed[DebugButton]:
             self.x = xRes / 2 - round(get_img_size(self.image)[0] / 2)  # Position on screen (X)
             self.y = yRes / 2 - round(get_img_size(self.image)[1] / 2)  # Position on screen (Y)
@@ -307,6 +311,28 @@ class picture:
     def update(self):
         view.draw(self.image,self.x,self.y)
 
+class healthbar:
+
+    def __init__(self,link):
+        self.image = sprites["player_hp"]
+        self.image2= sprites["player_hpN"]
+        self.imgs = 24
+        self.link = link
+        self.x = 16
+        self.y = 16
+
+    def update(self):
+        self.x = 16
+        self.y = 16
+        self.imgs = self.link.hp
+        for i in range(0,self.imgs):
+            if self.link.hpN > 0 and i <= self.link.hpN:
+                view.draw(self.image2,self.x,self.y)
+            else:
+                view.draw(self.image, self.x, self.y)
+            self.y += 2
+
+
 class background:
 
     def __init__(self):
@@ -326,7 +352,7 @@ class background:
 player = player()
 bg = background()
 view = view(player)
-
+playerHB = healthbar(player)
 generateStage(4,4)
 
 #Objects -------------------------------------------------------------------------------
@@ -350,6 +376,7 @@ while run:
     ########################################################## MAIN
 
     #Update Objs [START]#
+    playerHB.update()
     for each in Pictures:
         each.update()
     view.update()
