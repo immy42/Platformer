@@ -20,6 +20,7 @@ Framerate = 60
 bgColour = (255,255,255)
 
 Platforms = []
+Enemies = []
 Pictures = []
 Enemies = []
 
@@ -40,10 +41,10 @@ sprites = {
     "player_idle":[r"sprites\player_idle.png",r"sprites\player_idle_blink.png"],
     "player_run":[r"sprites\player_run_1.png",r"sprites\player_run_2.png",r"sprites\player_run_3.png",r"sprites\player_run_4.png",r"sprites\player_run_3.png"],
     "player_air":r"sprites\player_air.png",
-    "player_hp":r"sprites\player_health.png",
-    "player_hpN":r"sprites\player_health_loss.png",
+    "player_hp":[r"sprites\player_health.png",r"sprites\player_health_loss.png"],
     "player_hurt":[r"sprites\player_hurt.png",r"sprites\player_hurt_2.png"],
-    "enemy1_idle":r"sprites\enemy1_idle.png"
+    "enemy1_idle":r"sprites\enemy1_idle.png",
+    "ray":r"sprites\ray.png"
 }
 
 #Globals -------------------------------------------------------------------------------
@@ -90,6 +91,47 @@ def generateStage(w,h):
         loadStage(JF, [stageX, stageY])
         stageX += 1
 
+def draw_ray(xy,mask,offsetX,offsetY,Type): #debug func
+    x = xy[0]
+    y = xy[1]
+    Xx = x
+    Yy = y
+    Mx = mask[0]
+    My = mask[1]
+    while True:
+        if x != Xx+offsetX:
+            if offsetX > 0:
+                x += 1
+            else:
+                x -= 1
+        if y != Yy+offsetY:
+            if offsetY > 0:
+                y += 1
+            else:
+                y -= 1
+        view.draw(sprites["ray"], x, y)
+        if x == Xx + offsetX and y == Yy + offsetX:
+            break
+
+def draw_mask(xy,mask,offsetX,offsetY,Type): #debug func
+    x = xy[0] #player pos X
+    y = xy[1] #player pos Y
+    Mx = mask[0] #mask width
+    My = mask[1] #mask height
+    Xx = x-Mx # drawing x pos
+    Yy = y #drawing y pos
+    while True:
+        view.draw(sprites["ray"], Xx, Yy)
+        if Xx != x+Mx: #if havent drawn complete width on this line yet
+            Xx += 1 #extend line (draw next ray x+1)
+        else:
+            if Yy != y-My: #if entire height of mask hasnt been reached yet
+                Xx = x-Mx #xpos of next ray reset to playerX-width of mask
+                Yy -= 1 #next rays to be drawn at y-1 creating a thicker mask drawn
+            else:
+                break
+
+
 def place_meeting(xy,mask,offsetX,offsetY,Type):
     x = xy[0]
     y = xy[1]
@@ -103,6 +145,20 @@ def place_meeting(xy,mask,offsetX,offsetY,Type):
                         return True
                 if offsetY < 0:
                     if x >= each.x - (get_img_size(each.image)[0]) / 2 and x < each.x + (get_img_size(each.image)[0]) + (get_img_size(each.image)[0] - 1) and each.y == y + offsetY:  # TO EDIT meeting platform at x,(y + offsetY):
+                        return True
+        return False
+    if Type == "enemy":
+        for each in Enemies:
+            if offsetX == 0:
+                if offsetY > 0:
+                    if x >= each.x - (get_img_size(each.image)[0]) / 2 and x < each.x + (get_img_size(each.image)[0]) + (get_img_size(each.image)[0] - 1) and each.y == y + offsetY:  # meeting platform at x,(y + offsetY):
+                        return True
+                if offsetY < 0:
+                    if x >= each.x - (get_img_size(each.image)[0]) / 2 and x < each.x + (get_img_size(each.image)[0]) + (get_img_size(each.image)[0] - 1) and each.y == y + offsetY:  # TO EDIT meeting platform at x,(y + offsetY):
+                        return True
+                if offsetY == 0:
+                    #if each.x >= x-Mx and each.x+(get_img_size(each.image)[0]) <= x+Mx and each.y <= y and each.y >= y-My:
+                    if each.y <= y and each.y >= y-My-(get_img_size(each.image)[1]) and each.x >= x-Mx and each.x+(get_img_size(each.image)[0]) <= x+Mx:
                         return True
         return False
 
@@ -119,9 +175,9 @@ class view:
         self.followObj = followObj
 
     def draw(self,img,x,y):
-        if (x >= self.xview[0]-preLoadRadius and x <= self.xview[1]+preLoadRadius and y >= self.yview[0]-preLoadRadius and y <= self.yview[1]+preLoadRadius) or img == self.followObj.image or img == sprites["player_hp"]:
+        if (x >= self.xview[0]-preLoadRadius and x <= self.xview[1]+preLoadRadius and y >= self.yview[0]-preLoadRadius and y <= self.yview[1]+preLoadRadius) or img == self.followObj.image or img in sprites["player_hp"]:
         #^ This can be added before img in the line below to only draw sprites in view, only useful if there are constraints to how many images are visible (e.g ram usage)
-            if img != self.followObj.image and img != sprites["player_hp"]:
+            if img != self.followObj.image and img not in sprites["player_hp"]:
                 windowXPos = x-self.xview[0]
                 windowYPos = y-self.yview[0]
                 img = pygame.image.load(img).convert_alpha() #Load Sprite
@@ -149,8 +205,8 @@ class player:
     def __init__(self):
         camera == "centered"
         self.image = sprites["player_idle"][0]
-        self.maskWidth = 4
-        self.maskHeight = 8
+        self.maskWidth = 6
+        self.maskHeight = 22
         self.maskXY = self.maskWidth,self.maskHeight
         self.anim_counter = 0
         self.anim_counter_max = 120
@@ -177,11 +233,9 @@ class player:
         self.hpN = 0
         self.anim_loops = 0
         self.max_anim_loops = 0
+        self.CanHurt = 1
+        self.Freeze = 0
         self.origin = [self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2)] #CollisionPoint
-
-    def hurt(self,dmg):
-        self.status = "hurt"
-        self.hpN += dmg
 
     def update(self): #Each frame
         self.origin = [self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2)] #CollisionPoint
@@ -206,7 +260,8 @@ class player:
             else:
                 if self.MaxGrav > self.Vspeed:
                     self.Vspeed = round(self.Vspeed + self.GForce,2) #Change 2 to ? if gravity is to be more than 9.9 in strength
-            self.status = "air"
+            if self.Freeze == 0:
+                self.status = "air"
         if math.floor(self.Vspeed) > 0:
             for i in range(0,math.floor(self.Vspeed)):
                 if place_meeting(self.origin, self.maskXY, 0, 1, "platform") == False:
@@ -214,8 +269,25 @@ class player:
                     self.origin[1] += 1
         #Gravity =
 
+        #Enemies and damage-
+        if place_meeting(self.origin,self.maskXY,0,0,"enemy") == True and self.CanHurt == 1: #touching enemy
+            self.CanHurt = 0
+            self.status = "hurt"
+            self.hpN += 4
+            self.Freeze = 1
+            if self.Jumping == 1:
+                self.Jumping = 0
+                self.Gravity = 1
+                self.JumpSpeed = 2
+                self.JumpSpeedC = 0
+        #if self.status != "hurt" and self.Freeze == 1:
+            #self.Freeze = 0
+            #self.Hspeed = 0
+            #self.CanHurt = 1
+        #Enemies and damage=
+
         #H Movement -
-        if key_pressed[JumpButton]:
+        if key_pressed[JumpButton] and self.Freeze == 0:
             if self.CanJump == 1:
                 self.CanJump = 0
                 self.Jumping = 1
@@ -240,17 +312,26 @@ class player:
                 self.JumpSpeed = 2
                 self.JumpSpeedC = 0
 
+        if self.CanHurt == 1:
+            draw_mask(self.origin, self.maskXY, 16, 16, "enemy")
+
         if key_pressed[DebugButton]:
-            self.x = xRes / 2 - round(get_img_size(self.image)[0] / 2)  # Position on screen (X)
-            self.y = yRes / 2 - round(get_img_size(self.image)[1] / 2)  # Position on screen (Y)
-            self.Xx = self.x  # Position in level (X)
-            self.Yy = self.y  # Position in level (Y)
-        if key_pressed[RightButton]:
-            self.Hspeed = 1
-            self.dir = 1
-        if key_pressed[LeftButton]:
-            self.Hspeed = -1
-            self.dir = -1
+            #self.x = xRes / 2 - round(get_img_size(self.image)[0] / 2)  # Position on screen (X)
+            #self.y = yRes / 2 - round(get_img_size(self.image)[1] / 2)  # Position on screen (Y)
+            #self.Xx = self.x  # Position in level (X)
+            #self.Yy = self.y  # Position in level (Y)
+            if self.CanHurt == 1:
+                self.CanHurt = 0
+            else:
+                self.CanHurt = 1
+
+        if self.Freeze == 0:
+            if key_pressed[RightButton]:
+                self.Hspeed = 1
+                self.dir = 1
+            if key_pressed[LeftButton]:
+                self.Hspeed = -1
+                self.dir = -1
         if key_pressed[RightButton] == False and key_pressed[LeftButton] == False and self.status != "hurt":
             self.Hspeed = 0
             if self.status == "run":
@@ -269,8 +350,14 @@ class player:
             self.anim_counter = 0
         if self.anim_loops == self.max_anim_loops:
             if self.status == "hurt":
-                self.status = "idle"
+                if self.Falling == 0:
+                    self.status = "idle"
+                else:
+                    self.status = "air"
                 self.Hspeed = 0
+                self.CanHurt = 1
+                self.Freeze = 0
+            self.anim_loops = 0
             self.max_anim_loops = "null"
         if self.last_status != self.status:
             self.anim_counter = 0
@@ -343,7 +430,6 @@ class healthbar:
 
     def __init__(self,link):
         self.image = sprites["player_hp"]
-        self.image2= sprites["player_hpN"]
         self.imgs = 24
         self.link = link
         self.x = 16
@@ -355,9 +441,9 @@ class healthbar:
         self.imgs = self.link.hp
         for i in range(0,self.imgs):
             if self.link.hpN > 0 and i <= self.link.hpN:
-                view.draw(self.image2,self.x,self.y)
+                view.draw(self.image[1],self.x,self.y)
             else:
-                view.draw(self.image, self.x, self.y)
+                view.draw(self.image[0], self.x, self.y)
             self.y += 2
 
 class background:
@@ -377,11 +463,11 @@ class background:
 #Objects -------------------------------------------------------------------------------
 
 player = player()
-aaa = enemyOne(96,96)
 bg = background()
 view = view(player)
 playerHB = healthbar(player)
 generateStage(4,4)
+enemyOne(110,148)
 
 #Objects -------------------------------------------------------------------------------
 
@@ -408,6 +494,8 @@ while run:
         each.update()
     view.update()
     for each in Platforms:
+        each.update()
+    for each in Enemies:
         each.update()
     for each in Enemies:
         each.update
