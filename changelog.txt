@@ -1,1 +1,4 @@
-improved dynamic gravity physics - fixed enemy collision with mask - added lives system + restarting -> need to prevent crash just close on all lives wasted.
+* Added enemyOne
+* Need to fix lag when in air
+* Need to add program ending correctly on 0 lives
+* Added shooting - need to add all sprites

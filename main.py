@@ -23,6 +23,7 @@ Platforms = []
 Enemies = []
 Pictures = []
 Enemies = []
+Active_Enemies = []
 
 #Globals -------------------------------------------------------------------------------
 
@@ -30,6 +31,7 @@ RightButton = pygame.K_RIGHT
 LeftButton = pygame.K_LEFT
 JumpButton = pygame.K_z
 DebugButton = pygame.K_d
+ShootButton = pygame.K_x
 
 global camera
 camera = "centered"
@@ -39,12 +41,14 @@ sprites = {
     "platform":r"sprites\platform.png",
     "background":r"sprites\background.png",
     "player_idle":[r"sprites\player_idle.png",r"sprites\player_idle_blink.png"],
-    "player_run":[r"sprites\player_run_1.png",r"sprites\player_run_2.png",r"sprites\player_run_3.png",r"sprites\player_run_4.png",r"sprites\player_run_3.png"],
-    "player_air":r"sprites\player_air.png",
-    "player_hp":[r"sprites\player_health.png",r"sprites\player_health_loss.png"],
+    "player_run": [r"sprites\player_run_1.png", r"sprites\player_run_2.png", r"sprites\player_run_3.png",r"sprites\player_run_4.png", r"sprites\player_run_3.png"],
     "player_hurt":[r"sprites\player_hurt.png",r"sprites\player_hurt_2.png"],
+    "player_air":r"sprites\player_air.png",
     "enemy1_idle":r"sprites\enemy1_idle.png",
-    "ray":r"sprites\ray.png"
+    "enemy1_change":[r"sprites\enemy1_atk_0.png",r"sprites\enemy1_atk_1.png",r"sprites\enemy1_atk_2.png",r"sprites\enemy1_atk_3.png"],
+    "enemy1_atk":r"sprites\enemy1_atk_3.png",
+    "ray":r"sprites\ray.png",
+    "player_hp":[r"sprites\player_health.png", r"sprites\player_health_loss.png"]
 }
 
 #Globals -------------------------------------------------------------------------------
@@ -147,8 +151,15 @@ def place_meeting(xy,mask,offsetX,offsetY,Type):
                     if x >= each.x - (get_img_size(each.image)[0]) / 2 and x < each.x + (get_img_size(each.image)[0]) + (get_img_size(each.image)[0] - 1) and each.y == y + offsetY:  # TO EDIT meeting platform at x,(y + offsetY):
                         return True
         return False
+    if Type == "player":
+        each = Player
+        if offsetX == 0:
+            if offsetY == 0:
+                if each.y <= y and each.y >= y - My - (get_img_size(each.image)[1]) and each.x >= x - (Mx * 2) and each.x + (get_img_size(each.image)[0]) <= x + (Mx * 2):
+                    return True
+        return False
     if Type == "enemy":
-        for each in Enemies:
+        for each in Active_Enemies:
             if offsetX == 0:
                 if offsetY > 0:
                     if x >= each.x - (get_img_size(each.image)[0]) / 2 and x < each.x + (get_img_size(each.image)[0]) + (get_img_size(each.image)[0] - 1) and each.y == y + offsetY:  # meeting platform at x,(y + offsetY):
@@ -235,10 +246,24 @@ class player:
         self.max_anim_loops = 0
         self.CanHurt = 1
         self.Freeze = 0
+        self.Shooting = 0
+        self.ShotFrame = 0
+        self.MaxShotFrame = 10
         self.origin = [self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2)] #CollisionPoint
 
     def update(self): #Each frame
         self.origin = [self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2)] #CollisionPoint
+
+        if self.Shooting == 0:
+            sprites["player_idle"] = [r"sprites\player_idle.png", r"sprites\player_idle_blink.png"]
+            sprites["player_run"] = [r"sprites\player_run_1.png", r"sprites\player_run_2.png", r"sprites\player_run_3.png",r"sprites\player_run_4.png", r"sprites\player_run_3.png"]
+            sprites["player_air"] = r"sprites\player_air.png"
+        else:
+            sprites["player_idle"] = [r"sprites\player_shoot.png",r"sprites\player_shoot.png"]
+            self.ShotFrame += 1
+            if self.ShotFrame == self.MaxShotFrame:
+                self.Shooting = 0
+                self.ShotFrame = 0
 
         #Physics --
         #Gravity -
@@ -285,6 +310,9 @@ class player:
             #self.Hspeed = 0
             #self.CanHurt = 1
         #Enemies and damage=
+
+        if key_pressed[ShootButton]:
+            self.Shooting = 1
 
         #H Movement -
         if key_pressed[JumpButton] and self.Freeze == 0:
@@ -363,7 +391,7 @@ class player:
             self.anim_counter = 0
             self.img_index = 0
         if self.status == "idle":
-            self.anim_counter_max = 120
+            self.anim_counter_max = 120 #img speed
             if self.anim_counter >= 110:
                 self.image = sprites["player_idle"][1]
             else:
@@ -410,9 +438,57 @@ class enemyOne:
         self.image = sprites["enemy1_idle"]
         self.x = x
         self.y = y
+        self.origin = [x-(get_img_size(self.image)[0]/2),y+(get_img_size(self.image)[1])]
+        self.status = "idle"
+        self.anim_counter = 0
+        self.anim_counter_max = 0
+        self.img_index = 0
 
     def update(self):
         View.draw(self.image,self.x,self.y)
+        if Player.Xx <= self.x+8 and Player.Xx >= self.x-24 and Player.Yy <= self.y and Player.Yy >= self.y-16:
+            if self.status == "idle":
+                self.status = "change1"
+        else:
+            if self.status == "up":
+                self.status = "change2"
+
+        self.anim_counter += 1
+        if self.anim_counter > self.anim_counter_max:
+            self.anim_counter = 0
+        if self.status == "idle":
+            self.anim_counter_max = 0
+            self.image = sprites["enemy1_idle"]
+        if self.status == "change1":
+            self.anim_counter_max = 7
+            self.image = sprites["enemy1_change"][self.img_index]
+            if self.anim_counter == 0:
+                if self.image in sprites["enemy1_change"]:
+                    self.img_index += 1
+                else:
+                    self.image = sprites["enemy1_change"][0]
+                if self.img_index == 3:
+                    self.status = "up"
+                    self.img_index = 0
+        if self.status == "up":
+            self.anim_counter_max = 0
+            self.image = sprites["enemy1_atk"]
+            if self not in Active_Enemies:
+                Active_Enemies.append(self)
+        else:
+            if self in Active_Enemies:
+                Active_Enemies.remove(self)
+        if self.status == "change2":
+            self.anim_counter_max = 7
+            self.image = sprites["enemy1_change"][self.img_index]
+            if self.anim_counter == 0:
+                if self.image in sprites["enemy1_change"]:
+                    self.img_index -= 1
+                else:
+                    self.image = sprites["enemy1_change"][2]
+                if self.img_index == -1:
+                    self.status = "idle"
+                    self.img_index = 0
 
 class picture:
 
@@ -479,7 +555,7 @@ while True:
     Player = player()
     View = view(Player)
     PlayerHB = healthbar(Player)
-    enemyOne(110,148)
+    enemyOne(114,163)
     ran = 1
     #Objects -------------------------------------------------------------------------------
 
@@ -507,9 +583,9 @@ while True:
         View.update()
         for each in Platforms:
             each.update()
+        Player.update()
         for each in Enemies:
             each.update()
-        Player.update()
         PlayerHB.update()
         if Player.hpN == Player.hp:
             run = False
