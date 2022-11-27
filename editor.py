@@ -240,7 +240,7 @@ class menu:
         if key_pressed[S_Button] and self.hasSaved == 0:
             global SaveData
             self.hasSaved = 1
-            with open('data\exported.json', 'w') as f:
+            with open('data\stage.json', 'w') as f:
                 f.write(json.dumps(SaveData))
             f.close()
             picture(sprites["menu"][1], 16, 32, "front")
