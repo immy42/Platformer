@@ -1,5 +1,6 @@
 import pygame
 import PIL
+import time
 
 pygame.init()
 windowIcon = pygame.image.load(r"sprites\icon.png")
@@ -8,8 +9,8 @@ pygame.display.set_caption('Mega Man')
 xRes = 256
 yRes = 224
 window = pygame.display.set_mode((xRes, yRes))
-roomX = 512
-roomY = 448
+roomX = 256
+roomY = 224
 preLoadRadius = 32
 clock = pygame.time.Clock()
 
@@ -23,17 +24,19 @@ Pictures = []
 
 RightButton = pygame.K_RIGHT
 LeftButton = pygame.K_LEFT
+UpButton = pygame.K_UP
+DownButton = pygame.K_DOWN
+EnterButton = pygame.K_RETURN
 
 global camera
 camera = "centered"
 
 global sprites
 sprites = {
+    "picker":r"sprites\picker.png",
     "platform":r"sprites\platform.png",
     "background":r"sprites\background.png",
     "player_idle":[r"sprites\player_idle.png",r"sprites\player_idle_blink.png"],
-    "player_run":[r"sprites\player_run_1.png",r"sprites\player_run_2.png",r"sprites\player_run_3.png",r"sprites\player_run_4.png",r"sprites\player_run_3.png"],
-    "player_air":r"sprites\player_air.png"
            }
 
 
@@ -48,17 +51,6 @@ def get_img_size(img):
     from PIL import Image
     img = Image.open(img)
     return img.size
-
-def place_meeting(xy,offsetX,offsetY,Type):
-    x = xy[0]
-    y = xy[1]
-    if Type == "platform":
-        for each in Platforms:
-            if offsetX == 0:
-                if offsetY > 0:
-                    if x >= each.x-(get_img_size(each.image)[0])/2 and x < each.x+(get_img_size(each.image)[0]) + (get_img_size(each.image)[0]-1) and each.y == y+offsetY: #meeting platform at x,(y + offsetY)
-                        return True
-    return False
 
 #Functions -----------------------------------------------------------------------------
 
@@ -97,57 +89,57 @@ class view:
         self.xview = self.followObj.origin[0] - (xRes / 2), self.followObj.origin[0] + (xRes / 2)
         self.yview = self.followObj.origin[1] - (yRes / 2), self.followObj.origin[1] + (yRes / 2)
 
-
-class player:
+class picker:
 
     def __init__(self):
         camera == "centered"
-        self.image = sprites["player_idle"][0]
+        self.Moved = 0
+        self.GridX = 16
+        self.GridY = 16
+        self.image = sprites["picker"]
         self.maskWidth = 4
         self.maskHeight = 8
         self.anim_counter = 0
         self.anim_counter_max = 120
         self.Hspeed = 0
-        self.x = xRes/2-round(get_img_size(self.image)[0]/2) #Position on screen (X)
-        self.y = yRes/2-round(get_img_size(self.image)[1]/2) #Position on screen (Y)
-        self.Xx = self.x #Position in level (X)
-        self.Yy = self.y #Position in level (Y)
+        self.Vspeed = 0
+        self.x = 0#xRes / 2 - round(get_img_size(self.image)[0] / 2)  # Position on screen (X)
+        self.y = 0#yRes / 2 - round(get_img_size(self.image)[1] / 2)  # Position on screen (Y)
+        self.Xx = self.x  # Position in level (X)
+        self.Yy = self.y  # Position in level (Y)
         self.status = "idle"
         self.last_status = self.status
         self.dir = 1
+        self.cooldown = 8
         self.img_index = 0
-        self.origin = self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2) #CollisionPoint
+        #self.origin = self.Xx + round(get_img_size(self.image)[0] / 2), self.Yy + round(get_img_size(self.image)[1] / 2)  # CollisionPoint
+        self.origin = self.Xx,self.Yy
 
     def update(self): #Each frame
-        self.origin = self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2) #CollisionPoint
+        #self.origin = self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2) #CollisionPoint
+        self.origin = self.Xx, self.Yy
 
         #Physics --
 
-        #Gravity -
-        if place_meeting(self.origin,0,1,"platform") == True: #If player on platform
-            if self.status == "air":
-                self.status = "idle"
-        else:
-            self.Yy += 1
-            self.status = "air"
-            pass
-        #Gravity =
-
         #H Movement -
-        if key_pressed[RightButton]:
-            self.Hspeed = 1
-            self.dir = 1
-        if key_pressed[LeftButton]:
-            self.Hspeed = -1
-            self.dir = -1
-        if key_pressed[RightButton] == False and key_pressed[LeftButton] == False:
-            self.Hspeed = 0
-            if self.status == "run":
-                self.status = "idle"
-        if self.status == "idle" and abs(self.Hspeed) == 1:
-            self.status = "run"
-        if self.Hspeed != 0:
-            self.Xx += self.Hspeed
+        if self.Moved == 0: #add cooldown
+            if key_pressed[RightButton]:
+                self.Xx += self.GridX
+                self.Moved = self.cooldown
+            if key_pressed[LeftButton]:
+                self.Xx -= self.GridX
+                self.Moved = self.cooldown
+            if key_pressed[UpButton]:
+                self.Yy -= self.GridY
+                self.Moved = self.cooldown
+            if key_pressed[DownButton]:
+                self.Yy += self.GridY
+                self.Moved = self.cooldown
+            if key_pressed[EnterButton]:
+                platform(self.Xx,self.Yy)
+                self.Moved = self.cooldown
+        else:
+            self.Moved -= 1
         #H Movement =
 
         #Physics ==
@@ -159,25 +151,8 @@ class player:
         if self.last_status != self.status:
             self.anim_counter = 0
             self.img_index = 0
-        if self.status == "idle":
-            self.anim_counter_max = 120
-            if self.anim_counter >= 110:
-                self.image = sprites["player_idle"][1]
-            else:
-                self.image = sprites["player_idle"][0]
-        if self.status == "run":
-            self.anim_counter_max = 7
-            if self.anim_counter == 0:
-                if self.image in sprites["player_run"]:
-                    self.img_index += 1
-                if self.img_index == 5:
-                    self.img_index = 1
-                self.image = sprites["player_run"][self.img_index]
-        if self.status == "air":
-            self.anim_counter_max = 0
-            self.image = sprites["player_air"]
         #Animations -------------------------------
-        view.draw(self.image,self.x,self.y)
+        view.draw(self.image,self.x+8,self.y+15)
         self.last_status = self.status
 
 class platform:
@@ -190,7 +165,6 @@ class platform:
 
     def update(self):
         view.draw(self.image,self.x,self.y)
-
 
 class picture:
 
@@ -220,13 +194,9 @@ class background:
 
 #Objects -------------------------------------------------------------------------------
 
-player = player()
+picker = picker()
 bg = background()
-view = view(player)
-platform(128,113)
-platform(112,113)
-platform(96,150)
-platform(112,150)
+view = view(picker)
 
 #Objects -------------------------------------------------------------------------------
 
@@ -254,7 +224,7 @@ while run:
     view.update()
     for each in Platforms:
         each.update()
-    player.update()
+    picker.update()
 
     #Update Objs [END]#
 
