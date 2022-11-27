@@ -10,14 +10,12 @@ yRes = 224
 window = pygame.display.set_mode((xRes, yRes))
 roomX = 512
 roomY = 448
-preLoadRadius = 32
 clock = pygame.time.Clock()
 
 Framerate = 60
 bgColour = (255,255,255)
 
 Platforms = []
-Pictures = []
 
 #Globals -------------------------------------------------------------------------------
 
@@ -32,8 +30,7 @@ sprites = {
     "platform":r"sprites\platform.png",
     "background":r"sprites\background.png",
     "player_idle":[r"sprites\player_idle.png",r"sprites\player_idle_blink.png"],
-    "player_run":[r"sprites\player_run_1.png",r"sprites\player_run_2.png",r"sprites\player_run_3.png",r"sprites\player_run_4.png",r"sprites\player_run_3.png"],
-    "player_air":r"sprites\player_air.png"
+    "player_run":[r"sprites\player_run_1.png",r"sprites\player_run_2.png",r"sprites\player_run_3.png",r"sprites\player_run_4.png",r"sprites\player_run_3.png"]
            }
 
 
@@ -73,31 +70,31 @@ class view:
         self.followObj = followObj
 
     def draw(self,img,x,y):
-        if (x >= self.xview[0]-preLoadRadius and x <= self.xview[1]+preLoadRadius and y >= self.yview[0]-preLoadRadius and y <= self.yview[1]+preLoadRadius) or img == self.followObj.image:
-        #^ This can be added before img in the line below to only draw sprites in view, only useful if there are constraints to how many images are visible (e.g ram usage)
-            if img != self.followObj.image:
-                windowXPos = x-self.xview[0]
-                windowYPos = y-self.yview[0]
+        #if x >= self.xview[0] and x <= self.xview[1] and y >= self.yview[0] and y <= self.yview[1] and
+        #^ This can be added before img in the line below to only draw sprites in view, only useful if there are constraints to how many images are visible
+        if img != self.followObj.image:
+            windowXPos = x-self.xview[0]
+            windowYPos = y-self.yview[0]
+            img = pygame.image.load(img).convert_alpha() #Load Sprite
+            window.blit(img,(windowXPos,windowYPos)) #Draw Sprite
+        if img == self.followObj.image:
+            if self.followObj.dir == 1:
                 img = pygame.image.load(img).convert_alpha() #Load Sprite
-                window.blit(img,(windowXPos,windowYPos)) #Draw Sprite
+                window.blit(img,(x,y)) #Draw Sprite
             else:
-                if self.followObj.dir == 1:
-                    img = pygame.image.load(img).convert_alpha() #Load Sprite
-                    window.blit(img,(x,y)) #Draw Sprite
-                else:
-                    img = pygame.image.load(img).convert_alpha() #Load Sprite
-                    img = img.copy()
-                    img = pygame.transform.flip(img, True, False)
-                    window.blit(img, (x, y))  # Draw Sprite
+                img = pygame.image.load(img).convert_alpha() #Load Sprite
+                img = img.copy()
+                img = pygame.transform.flip(img, True, False)
+                window.blit(img, (x, y))  # Draw Sprite
 
     def update(self):
         if camera == "centered":
             self.followObj.x = xRes/2-(get_img_size(self.followObj.image)[0]/2) #Position on screen (X)
             self.followObj.y = yRes/2-(get_img_size(self.followObj.image)[1])+1 #Position on screen (Y)
-        self.xview = self.followObj.origin[0] - (xRes / 2), self.followObj.origin[0] + (xRes / 2)
-        self.yview = self.followObj.origin[1] - (yRes / 2), self.followObj.origin[1] + (yRes / 2)
+        self.xview = self.followObj.origin[0]-(xRes/2),self.followObj.origin[0]+(xRes/2)
+        self.yview = self.followObj.origin[1]-(yRes/2),self.followObj.origin[1]+(yRes/2)
 
-
+        
 class player:
 
     def __init__(self):
@@ -120,19 +117,18 @@ class player:
 
     def update(self): #Each frame
         self.origin = self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2) #CollisionPoint
-
+        
         #Physics --
-
+        
         #Gravity -
         if place_meeting(self.origin,0,1,"platform") == True: #If player on platform
-            if self.status == "air":
-                self.status = "idle"
+            #On platform
+            pass
         else:
             self.Yy += 1
-            self.status = "air"
             pass
         #Gravity =
-
+        
         #H Movement -
         if key_pressed[RightButton]:
             self.Hspeed = 1
@@ -149,9 +145,9 @@ class player:
         if self.Hspeed != 0:
             self.Xx += self.Hspeed
         #H Movement =
-
+            
         #Physics ==
-
+            
         #Animations -------------------------------
         self.anim_counter += 1
         if self.anim_counter > self.anim_counter_max:
@@ -173,9 +169,6 @@ class player:
                 if self.img_index == 5:
                     self.img_index = 1
                 self.image = sprites["player_run"][self.img_index]
-        if self.status == "air":
-            self.anim_counter_max = 0
-            self.image = sprites["player_air"]
         #Animations -------------------------------
         view.draw(self.image,self.x,self.y)
         self.last_status = self.status
@@ -191,35 +184,18 @@ class platform:
     def update(self):
         view.draw(self.image,self.x,self.y)
 
-
-class picture:
-
-    def __init__(self,img,x,y,layer):
-        Pictures.append(self)
-        self.image = img
-        self.x = x
-        self.y = y
-        self.layer = layer
-
-    def update(self):
-        view.draw(self.image,self.x,self.y)
-
 class background:
 
     def __init__(self):
         self.image = sprites["background"]
-        self.rX = round(roomX/32)
-        self.rY = round(roomY/32)
-        self.Xx = 0
-        self.Yy = 0
-        for ii in range(0,self.rY):
-            for i in range(0,self.rX):
-                picture(self.image,self.Xx+(32*i),self.Yy,"back")
-            self.Yy += 32
+        self.x = 0
+        self.y = 0
 
-
+    def update(self):
+        view.draw(self.image,self.x,self.y)
+    
 #Objects -------------------------------------------------------------------------------
-
+        
 player = player()
 bg = background()
 view = view(player)
@@ -232,7 +208,7 @@ platform(112,150)
 
 run = True
 while run:
-
+    
     window.fill((bgColour))
     clock.tick(Framerate)
     for event in pygame.event.get():
@@ -242,25 +218,25 @@ while run:
 
     ########################################################## Debug
 
-    #print(player.img_index)
+    print(player.img_index)
 
     ########################################################## Debug
 
     ########################################################## MAIN
 
     #Update Objs [START]#
-    for each in Pictures:
-        each.update()
+    
+    bg.update()
     view.update()
     for each in Platforms:
         each.update()
     player.update()
 
     #Update Objs [END]#
-
+    
     ########################################################## MAIN
     pygame.display.flip()
     pygame.display.update()
-
+    
 pygame.quit()
 exit()
