@@ -2,3 +2,4 @@
 * Need to fix lag when in air
 * Need to add program ending correctly on 0 lives
 * Added shooting - need to add all sprites
+* Added player projectile, not working
