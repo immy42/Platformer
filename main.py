@@ -1,6 +1,7 @@
 import pygame
 import PIL
-
+import json
+import math
 pygame.init()
 windowIcon = pygame.image.load(r"sprites\icon.png")
 pygame.display.set_icon(windowIcon)
@@ -23,6 +24,8 @@ Pictures = []
 
 RightButton = pygame.K_RIGHT
 LeftButton = pygame.K_LEFT
+JumpButton = pygame.K_z
+DebugButton = pygame.K_d
 
 global camera
 camera = "centered"
@@ -49,16 +52,24 @@ def get_img_size(img):
     img = Image.open(img)
     return img.size
 
-def place_meeting(xy,offsetX,offsetY,Type):
+def loadStage(level_data):
+    global Platforms
+    Platforms = []
+    for i in range(0,len(level_data["platforms"])):
+        platform(level_data["platforms"][i][0],level_data["platforms"][i][1])
+
+def place_meeting(xy,mask,offsetX,offsetY,Type):
     x = xy[0]
     y = xy[1]
+    Mx = mask[0]
+    My = mask[1]
     if Type == "platform":
         for each in Platforms:
             if offsetX == 0:
                 if offsetY > 0:
-                    if x >= each.x-(get_img_size(each.image)[0])/2 and x < each.x+(get_img_size(each.image)[0]) + (get_img_size(each.image)[0]-1) and each.y == y+offsetY: #meeting platform at x,(y + offsetY)
+                    if x >= each.x - (get_img_size(each.image)[0]) / 2 and x < each.x + (get_img_size(each.image)[0]) + (get_img_size(each.image)[0] - 1) and each.y == y + offsetY:  # meeting platform at x,(y + offsetY):
                         return True
-    return False
+        return False
 
 #Functions -----------------------------------------------------------------------------
 
@@ -105,35 +116,56 @@ class player:
         self.image = sprites["player_idle"][0]
         self.maskWidth = 4
         self.maskHeight = 8
+        self.maskXY = self.maskWidth,self.maskHeight
         self.anim_counter = 0
         self.anim_counter_max = 120
         self.Hspeed = 0
-        self.x = xRes/2-round(get_img_size(self.image)[0]/2) #Position on screen (X)
-        self.y = yRes/2-round(get_img_size(self.image)[1]/2) #Position on screen (Y)
+        self.x = 64#xRes/2-round(get_img_size(self.image)[0]/2) #Position on screen (X)
+        self.y = 64#yRes/2-round(get_img_size(self.image)[1]/2) #Position on screen (Y)
         self.Xx = self.x #Position in level (X)
         self.Yy = self.y #Position in level (Y)
+        self.Vspeed = 0
+        self.Gravity = 1
+        self.GForce = 0.1
+        self.MaxGrav = 2
+        self.Falling = 0
         self.status = "idle"
         self.last_status = self.status
         self.dir = 1
         self.img_index = 0
-        self.origin = self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2) #CollisionPoint
+        self.origin = [self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2)] #CollisionPoint
 
     def update(self): #Each frame
-        self.origin = self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2) #CollisionPoint
+        self.origin = [self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2)] #CollisionPoint
 
         #Physics --
-
         #Gravity -
-        if place_meeting(self.origin,0,1,"platform") == True: #If player on platform
+        if place_meeting(self.origin,self.maskXY,0,1,"platform") == True: #If player on platform
             if self.status == "air":
                 self.status = "idle"
-        else:
-            self.Yy += 1
+                self.Vspeed = 0
+                self.Falling = 0
+        elif self.Gravity == 1:
+            if self.Falling == 0:
+                self.Vspeed = 1
+                self.Falling = 1
+            else:
+                if self.MaxGrav > self.Vspeed:
+                    self.Vspeed = round(self.Vspeed + self.GForce,2) #Change 2 to ? if gravity is to be more than 9.9 in strength
             self.status = "air"
-            pass
+        if math.floor(self.Vspeed) > 0:
+            for i in range(0,math.floor(self.Vspeed)):
+                if place_meeting(self.origin, self.maskXY, 0, 1, "platform") == False:
+                    self.Yy += 1
+                    self.origin[1] += 1
         #Gravity =
 
         #H Movement -
+        if key_pressed[DebugButton]:
+            self.x = xRes / 2 - round(get_img_size(self.image)[0] / 2)  # Position on screen (X)
+            self.y = yRes / 2 - round(get_img_size(self.image)[1] / 2)  # Position on screen (Y)
+            self.Xx = self.x  # Position in level (X)
+            self.Yy = self.y  # Position in level (Y)
         if key_pressed[RightButton]:
             self.Hspeed = 1
             self.dir = 1
@@ -223,10 +255,11 @@ class background:
 player = player()
 bg = background()
 view = view(player)
-platform(128,113)
-platform(112,113)
-platform(96,150)
-platform(112,150)
+
+with open(r"data\stage.json") as json_file:
+    JF = json.load(json_file)
+json_file.close()
+loadStage(JF)
 
 #Objects -------------------------------------------------------------------------------
 
