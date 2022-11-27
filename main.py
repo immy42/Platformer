@@ -24,6 +24,7 @@ Enemies = []
 Pictures = []
 Enemies = []
 Active_Enemies = []
+PlayerProjectiles = []
 
 #Globals -------------------------------------------------------------------------------
 
@@ -48,7 +49,8 @@ sprites = {
     "enemy1_change":[r"sprites\enemy1_atk_0.png",r"sprites\enemy1_atk_1.png",r"sprites\enemy1_atk_2.png",r"sprites\enemy1_atk_3.png"],
     "enemy1_atk":r"sprites\enemy1_atk_3.png",
     "ray":r"sprites\ray.png",
-    "player_hp":[r"sprites\player_health.png", r"sprites\player_health_loss.png"]
+    "player_hp":[r"sprites\player_health.png", r"sprites\player_health_loss.png"],
+    "player_bullet":r"sprites\player_bullet.png"
 }
 
 #Globals -------------------------------------------------------------------------------
@@ -94,6 +96,7 @@ def generateStage(w,h):
         json_file.close()
         loadStage(JF, [stageX, stageY])
         stageX += 1
+
 
 def draw_ray(xy,mask,offsetX,offsetY,Type): #debug func
     x = xy[0]
@@ -344,6 +347,7 @@ class player:
             #draw_mask(self.origin, self.maskXY, 16, 16, "enemy")
 
         #if key_pressed[DebugButton]:
+
             #self.x = xRes / 2 - round(get_img_size(self.image)[0] / 2)  # Position on screen (X)
             #self.y = yRes / 2 - round(get_img_size(self.image)[1] / 2)  # Position on screen (Y)
             #self.Xx = self.x  # Position in level (X)
@@ -419,6 +423,25 @@ class player:
         #Animations -------------------------------
         View.draw(self.image,self.x,self.y)
         self.last_status = self.status
+
+class player_projectile:
+
+    def __init__(self,x,y,ID):
+        PlayerProjectiles.append(self)
+        if ID == 1:
+            self.image = sprites["player_bullet"]
+        self.ID = ID
+        self.x = x
+        self.y = y
+        self.Hspeed = 0
+
+    def update(self):
+        if self.ID == 1:
+            self.Hspeed = 2
+        if Hspeed != 0:
+            self.x += Hspeed
+        View.draw(self.image, self.x, self.y)
+        print(self.x)
 
 class platform:
 
@@ -549,6 +572,8 @@ while True:
             del each
         for each in Pictures:
             del each
+        for each in PlayerProjectiles:
+            del each
         del Player
         del PlayerHB
         del View
@@ -585,6 +610,8 @@ while True:
             each.update()
         Player.update()
         for each in Enemies:
+            each.update()
+        for each in PlayerProjectiles:
             each.update()
         PlayerHB.update()
         if Player.hpN == Player.hp:
