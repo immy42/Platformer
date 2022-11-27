@@ -17,7 +17,6 @@ clock = pygame.time.Clock()
 Framerate = 60
 bgColour = (255,255,255)
 
-Platforms = []
 Pictures = []
 
 #Globals -------------------------------------------------------------------------------
@@ -27,21 +26,28 @@ LeftButton = pygame.K_LEFT
 UpButton = pygame.K_UP
 DownButton = pygame.K_DOWN
 EnterButton = pygame.K_RETURN
+MenuButton = pygame.K_ESCAPE
+S_Button = pygame.K_s
+R_Button = pygame.K_r
 
 global camera
-camera = "centered"
+camera = "locked"
 
 global sprites
 sprites = {
+    "menu":[r"sprites\menu.png",r"sprites\menuR.png",r"sprites\menuS.png",r"sprites\menuRS.png"],
     "picker":r"sprites\picker.png",
+    "dropped":[r"sprites\picker_dropped1.png",r"sprites\picker_dropped2.png",r"sprites\picker_dropped3.png",r"sprites\picker_dropped4.png",r"sprites\picker_dropped5.png"],
     "platform":r"sprites\platform.png",
     "background":r"sprites\background.png",
     "player_idle":[r"sprites\player_idle.png",r"sprites\player_idle_blink.png"],
-           }
+    }
 
+global Platforms
+Platforms = []
 
-global platforms
-platforms = []
+global PlatformXY
+PlatformXY = ""
 
 #Globals -------------------------------------------------------------------------------
 
@@ -86,13 +92,18 @@ class view:
         if camera == "centered":
             self.followObj.x = xRes/2-(get_img_size(self.followObj.image)[0]/2) #Position on screen (X)
             self.followObj.y = yRes/2-(get_img_size(self.followObj.image)[1])+1 #Position on screen (Y)
-        self.xview = self.followObj.origin[0] - (xRes / 2), self.followObj.origin[0] + (xRes / 2)
-        self.yview = self.followObj.origin[1] - (yRes / 2), self.followObj.origin[1] + (yRes / 2)
+            self.xview = self.followObj.origin[0] - (xRes / 2), self.followObj.origin[0] + (xRes / 2)
+            self.yview = self.followObj.origin[1] - (yRes / 2), self.followObj.origin[1] + (yRes / 2)
+        if camera == "locked":
+            self.xview = 0,256
+            self.yview = 0,224
+            self.followObj.x = self.followObj.Xx
+            self.followObj.y = self.followObj.Yy
 
 class picker:
 
     def __init__(self):
-        camera == "centered"
+        camera = "locked"
         self.Moved = 0
         self.GridX = 16
         self.GridY = 16
@@ -112,6 +123,7 @@ class picker:
         self.dir = 1
         self.cooldown = 8
         self.img_index = 0
+        self.MenuCreated = 0
         #self.origin = self.Xx + round(get_img_size(self.image)[0] / 2), self.Yy + round(get_img_size(self.image)[1] / 2)  # CollisionPoint
         self.origin = self.Xx,self.Yy
 
@@ -136,7 +148,16 @@ class picker:
                 self.Yy += self.GridY
                 self.Moved = self.cooldown
             if key_pressed[EnterButton]:
-                platform(self.Xx,self.Yy)
+                self.status = "drop"
+                self.Moved = self.cooldown
+            if key_pressed[MenuButton]:
+                if self.MenuCreated == 0:
+                    global Menu
+                    Menu = menu()
+                    self.MenuCreated = 1
+                else:
+                    del Menu
+                    self.MenuCreated = 0
                 self.Moved = self.cooldown
         else:
             self.Moved -= 1
@@ -151,9 +172,31 @@ class picker:
         if self.last_status != self.status:
             self.anim_counter = 0
             self.img_index = 0
+        if self.status == "idle":
+            self.image = sprites["picker"]
+        if self.status == "drop":
+            self.anim_counter_max = 2 #Animation speed (frames per sprite)
+            if self.anim_counter == 0:
+                if self.image in sprites["dropped"]:
+                    self.img_index += 1
+                if self.img_index == 5: #Animation end (1 frame past last sprite frame)6
+                    platform(self.Xx,self.Yy)
+                    self.status = "idle"
+                try:
+                    self.image = sprites["dropped"][self.img_index]
+                except:
+                    pass
         #Animations -------------------------------
-        view.draw(self.image,self.x+8,self.y+15)
+
+        #final stuff
+        view.draw(self.image,self.x,self.y)
         self.last_status = self.status
+        
+        try:
+            Menu.update()
+        except:
+            pass
+            #menu doesnt exist
 
 class platform:
 
@@ -162,10 +205,53 @@ class platform:
         self.image = sprites["platform"]
         self.x = x
         self.y = y
+        global PlatformXY
+        PlatformXY += str(self.x)+":"+str(self.y)+"\n"
 
+    def __del__(self):
+        pass
+        #delete obj
+    
     def update(self):
         view.draw(self.image,self.x,self.y)
 
+class menu:
+
+    def __init__(self):
+        self.image = sprites["menu"][0]
+        self.x = 0
+        self.y = 0
+        self.hasSaved = 0
+        self.hasReset = 0
+
+    def __del__(self):
+        pass
+        #delete obj
+
+    def update(self):
+        view.draw(self.image,self.x,self.y)
+        global Platforms
+        if key_pressed[S_Button] and self.hasSaved == 0:
+            global PlatformXY
+            self.hasSaved = 1
+            with open('expo.txt', 'w') as f:
+                f.write(str(PlatformXY))
+                print("written")
+            f.close()
+        if key_pressed[R_Button]:
+            for each in Platforms:
+                del each
+            Platforms = []
+            PlatformXY = []
+            self.hasReset = 1
+        if self.hasReset == 1:
+            if self.hasSaved == 0:
+                self.image = sprites["menu"][1]
+            else:
+                self.image = sprites["menu"][3]
+        if self.hasSaved == 1:
+            if self.hasReset == 0:
+                self.image = sprites["menu"][2]
 class picture:
 
     def __init__(self,img,x,y,layer):
@@ -219,6 +305,7 @@ while run:
     ########################################################## MAIN
 
     #Update Objs [START]#
+        
     for each in Pictures:
         each.update()
     view.update()
