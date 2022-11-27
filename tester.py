@@ -1,2 +1,2 @@
 import pip
-pip.main(['install','pillow'])
+pip.main(['install','pygame'])
