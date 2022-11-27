@@ -84,21 +84,26 @@ def generateStage(w,h):
     StageGrid = setGrid(w, h)
     stageX = 0
     stageY = 0
-    stageL = len(os.listdir(r"data\rooms"))
+    stageL = len(os.listdir(r"data\rooms")) #stageL(ength)
     with open(r"data\start\stage.json") as json_file:
         JF = json.load(json_file)
     json_file.close()
-    LE = JF["exit"] #most recent exit location
     loadStage(JF,[stageX,stageY])
     stageX+=1
+    LE = JF["exit"]#last exit
     for i in range(0,stageL):
         while True:
+            LE = JF["exit"]
             with open(r"data\\rooms\\"+random.choice(os.listdir(r"data\rooms"))) as json_file:
                 JF = json.load(json_file)
             json_file.close()
             if LE == "R" and JF["entrance"] == "L":
-                loadStage(JF, [stageX, stageY])
                 stageX += 1
+                loadStage(JF, [stageX, stageY])
+                break
+            if LE == "D" and JF["entrance"] == "U":
+                stageY += 1
+                loadStage(JF, [stageX, stageY])
                 break
 
 
