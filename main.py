@@ -2,6 +2,8 @@ import pygame
 import PIL
 import json
 import math
+import os
+import random
 pygame.init()
 windowIcon = pygame.image.load(r"sprites\icon.png")
 pygame.display.set_icon(windowIcon)
@@ -52,11 +54,40 @@ def get_img_size(img):
     img = Image.open(img)
     return img.size
 
-def loadStage(level_data):
-    global Platforms
-    Platforms = []
-    for i in range(0,len(level_data["platforms"])):
-        platform(level_data["platforms"][i][0],level_data["platforms"][i][1])
+def setGrid(x,y):
+    a = [],[]
+    for i in range(0,x):
+        a[0].append([])
+    for i in range(0,y):
+        a[1].append([])
+    return a
+
+def loadStage(level_data,pos):
+    oX = pos[0]*256 #offsetX
+    oY = pos[1]*224 #offsetY
+    for i in range(0,len(level_data["platforms"])): #read platform positions from file
+        ii = level_data["platforms"][i][0] #get xPos of platform
+        iii = level_data["platforms"][i][1] #get yPos of platform
+        ii += oX #add offset based on the imported level's position within the larger stage's Xgrid
+        iii += oY#add offset based on the imported level's position within the larger stage's Ygrid
+        platform(ii,iii) #create imported platform
+
+def generateStage(w,h):
+    StageGrid = setGrid(w, h)
+    stageX = 0
+    stageY = 0
+    stageL = len(os.listdir(r"data\rooms"))
+    with open(r"data\start\stage.json") as json_file:
+        JF = json.load(json_file)
+    json_file.close()
+    loadStage(JF,[stageX,stageY])
+    stageX+=1
+    for i in range(0,stageL):
+        with open(r"data\\rooms\\"+random.choice(os.listdir(r"data\rooms"))) as json_file:
+            JF = json.load(json_file)
+        json_file.close()
+        loadStage(JF, [stageX, stageY])
+        stageX += 1
 
 def place_meeting(xy,mask,offsetX,offsetY,Type):
     x = xy[0]
@@ -296,10 +327,7 @@ player = player()
 bg = background()
 view = view(player)
 
-with open(r"data\stage.json") as json_file:
-    JF = json.load(json_file)
-json_file.close()
-loadStage(JF)
+generateStage(4,4)
 
 #Objects -------------------------------------------------------------------------------
 
