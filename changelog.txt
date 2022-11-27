@@ -1,4 +1,4 @@
-* Added enemyOne
+* Added level gen logic input (entrances & exits) need to finish random gen
 * Need to fix lag when in air
 * Need to add program ending correctly on 0 lives
 * Added shooting - need to add all sprites

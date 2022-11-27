@@ -88,14 +88,18 @@ def generateStage(w,h):
     with open(r"data\start\stage.json") as json_file:
         JF = json.load(json_file)
     json_file.close()
+    LE = JF["exit"] #most recent exit location
     loadStage(JF,[stageX,stageY])
     stageX+=1
     for i in range(0,stageL):
-        with open(r"data\\rooms\\"+random.choice(os.listdir(r"data\rooms"))) as json_file:
-            JF = json.load(json_file)
-        json_file.close()
-        loadStage(JF, [stageX, stageY])
-        stageX += 1
+        while True:
+            with open(r"data\\rooms\\"+random.choice(os.listdir(r"data\rooms"))) as json_file:
+                JF = json.load(json_file)
+            json_file.close()
+            if LE == "R" and JF["entrance"] == "L":
+                loadStage(JF, [stageX, stageY])
+                stageX += 1
+                break
 
 
 def draw_ray(xy,mask,offsetX,offsetY,Type): #debug func
