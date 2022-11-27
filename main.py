@@ -109,7 +109,7 @@ def draw_ray(xy,mask,offsetX,offsetY,Type): #debug func
                 y += 1
             else:
                 y -= 1
-        view.draw(sprites["ray"], x, y)
+        View.draw(sprites["ray"], x, y)
         if x == Xx + offsetX and y == Yy + offsetX:
             break
 
@@ -121,7 +121,7 @@ def draw_mask(xy,mask,offsetX,offsetY,Type): #debug func
     Xx = x-Mx # drawing x pos
     Yy = y #drawing y pos
     while True:
-        view.draw(sprites["ray"], Xx, Yy)
+        View.draw(sprites["ray"], Xx, Yy)
         if Xx != x+Mx: #if havent drawn complete width on this line yet
             Xx += 1 #extend line (draw next ray x+1)
         else:
@@ -158,7 +158,7 @@ def place_meeting(xy,mask,offsetX,offsetY,Type):
                         return True
                 if offsetY == 0:
                     #if each.x >= x-Mx and each.x+(get_img_size(each.image)[0]) <= x+Mx and each.y <= y and each.y >= y-My:
-                    if each.y <= y and each.y >= y-My-(get_img_size(each.image)[1]) and each.x >= x-Mx and each.x+(get_img_size(each.image)[0]) <= x+Mx:
+                    if each.y <= y and each.y >= y-My-(get_img_size(each.image)[1]) and each.x >= x-(Mx*2) and each.x+(get_img_size(each.image)[0]) <= x+(Mx*2):
                         return True
         return False
 
@@ -205,8 +205,8 @@ class player:
     def __init__(self):
         camera == "centered"
         self.image = sprites["player_idle"][0]
-        self.maskWidth = 6
-        self.maskHeight = 22
+        self.maskWidth = 8
+        self.maskHeight = 16
         self.maskXY = self.maskWidth,self.maskHeight
         self.anim_counter = 0
         self.anim_counter_max = 120
@@ -219,8 +219,8 @@ class player:
         self.JumpSpeed = 0
         self.MaxJumpSpeed = 4
         self.Gravity = 1
-        self.GForce = 0.05
-        self.MaxGrav = 2
+        self.GForce = 0.1
+        self.MaxGrav = 3.5
         self.Falling = 0
         self.Jumping = 0
         self.CanJump = 0
@@ -254,7 +254,7 @@ class player:
                 self.JumpSpeedC = 0
         elif self.Gravity == 1:
             if self.Falling == 0:
-                self.Vspeed = 1
+                self.Vspeed = 0.75
                 self.Falling = 1
                 self.CanJump = 0
             else:
@@ -312,18 +312,18 @@ class player:
                 self.JumpSpeed = 2
                 self.JumpSpeedC = 0
 
-        if self.CanHurt == 1:
-            draw_mask(self.origin, self.maskXY, 16, 16, "enemy")
+        #if self.CanHurt == 1: #DEBUG!!!!!
+            #draw_mask(self.origin, self.maskXY, 16, 16, "enemy")
 
-        if key_pressed[DebugButton]:
+        #if key_pressed[DebugButton]:
             #self.x = xRes / 2 - round(get_img_size(self.image)[0] / 2)  # Position on screen (X)
             #self.y = yRes / 2 - round(get_img_size(self.image)[1] / 2)  # Position on screen (Y)
             #self.Xx = self.x  # Position in level (X)
             #self.Yy = self.y  # Position in level (Y)
-            if self.CanHurt == 1:
-                self.CanHurt = 0
-            else:
-                self.CanHurt = 1
+            #if self.CanHurt == 1:
+                #self.CanHurt = 0
+            #else:
+                #self.CanHurt = 1
 
         if self.Freeze == 0:
             if key_pressed[RightButton]:
@@ -389,7 +389,7 @@ class player:
             self.anim_counter_max = 0
             self.image = sprites["player_air"]
         #Animations -------------------------------
-        view.draw(self.image,self.x,self.y)
+        View.draw(self.image,self.x,self.y)
         self.last_status = self.status
 
 class platform:
@@ -401,7 +401,7 @@ class platform:
         self.y = y
 
     def update(self):
-        view.draw(self.image,self.x,self.y)
+        View.draw(self.image,self.x,self.y)
 
 class enemyOne:
 
@@ -412,7 +412,7 @@ class enemyOne:
         self.y = y
 
     def update(self):
-        view.draw(self.image,self.x,self.y)
+        View.draw(self.image,self.x,self.y)
 
 class picture:
 
@@ -424,7 +424,7 @@ class picture:
         self.layer = layer
 
     def update(self):
-        view.draw(self.image,self.x,self.y)
+        View.draw(self.image,self.x,self.y)
 
 class healthbar:
 
@@ -441,9 +441,9 @@ class healthbar:
         self.imgs = self.link.hp
         for i in range(0,self.imgs):
             if self.link.hpN > 0 and i <= self.link.hpN:
-                view.draw(self.image[1],self.x,self.y)
+                View.draw(self.image[1],self.x,self.y)
             else:
-                view.draw(self.image[0], self.x, self.y)
+                View.draw(self.image[0], self.x, self.y)
             self.y += 2
 
 class background:
@@ -461,51 +461,66 @@ class background:
 
 
 #Objects -------------------------------------------------------------------------------
-
-player = player()
-bg = background()
-view = view(player)
-playerHB = healthbar(player)
+ran = 0
+Lives = 3
 generateStage(4,4)
-enemyOne(110,148)
+background()
+while True:
+    if ran == 1:
+        for each in Enemies:
+            del each
+        for each in Platforms:
+            del each
+        for each in Pictures:
+            del each
+        del Player
+        del PlayerHB
+        del View
+    Player = player()
+    View = view(Player)
+    PlayerHB = healthbar(Player)
+    enemyOne(110,148)
+    ran = 1
+    #Objects -------------------------------------------------------------------------------
 
-#Objects -------------------------------------------------------------------------------
+    run = True
+    while run and Lives > 0:
 
-run = True
-while run:
+        window.fill((bgColour))
+        clock.tick(Framerate)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+            key_pressed = pygame.key.get_pressed()
 
-    window.fill((bgColour))
-    clock.tick(Framerate)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        ########################################################## Debug
+
+        #print(player.img_index)
+
+        ########################################################## Debug
+
+        ########################################################## MAIN
+
+        #Update Objs [START]#
+        for each in Pictures:
+            each.update()
+        View.update()
+        for each in Platforms:
+            each.update()
+        for each in Enemies:
+            each.update()
+        Player.update()
+        PlayerHB.update()
+        if Player.hpN == Player.hp:
             run = False
-        key_pressed = pygame.key.get_pressed()
+            Lives -= 1
 
-    ########################################################## Debug
+        #Update Objs [END]#
 
-    #print(player.img_index)
+        ########################################################## MAIN
+        pygame.display.flip()
+        pygame.display.update()
 
-    ########################################################## Debug
-
-    ########################################################## MAIN
-
-    #Update Objs [START]#
-    for each in Pictures:
-        each.update()
-    view.update()
-    for each in Platforms:
-        each.update()
-    for each in Enemies:
-        each.update()
-    for each in Enemies:
-        each.update
-    player.update()
-    playerHB.update()
-
-    #Update Objs [END]#
-
-    ########################################################## MAIN
-    pygame.display.flip()
-    pygame.display.update()
-
+print("!!!")
 pygame.quit()
+exit()

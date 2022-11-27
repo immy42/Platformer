@@ -1,1 +1,1 @@
-fixed hurt - fixed enemies-  need to edit place_meeting for collision mask only True when obj within mask entirely
+improved dynamic gravity physics - fixed enemy collision with mask - added lives system + restarting -> need to prevent crash just close on all lives wasted.
