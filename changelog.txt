@@ -1,1 +1,1 @@
-added hp - need to edit place_meeting
+added hurt - need to edit place_meeting - and fix enemy not updating from list of enemies
