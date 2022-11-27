@@ -1,7 +1,7 @@
 import pygame
 import PIL
 import time
-
+import json
 pygame.init()
 windowIcon = pygame.image.load(r"sprites\icon.png")
 pygame.display.set_icon(windowIcon)
@@ -29,13 +29,14 @@ EnterButton = pygame.K_RETURN
 MenuButton = pygame.K_ESCAPE
 S_Button = pygame.K_s
 R_Button = pygame.K_r
+L_Button = pygame.K_l
 
 global camera
 camera = "locked"
 
 global sprites
 sprites = {
-    "menu":[r"sprites\menu.png",r"sprites\menuR.png",r"sprites\menuS.png",r"sprites\menuRS.png"],
+    "menu":[r"sprites\menu.png",r"sprites\highlightG.png",r"sprites\highlightR.png"],
     "picker":r"sprites\picker.png",
     "dropped":[r"sprites\picker_dropped1.png",r"sprites\picker_dropped2.png",r"sprites\picker_dropped3.png",r"sprites\picker_dropped4.png",r"sprites\picker_dropped5.png"],
     "platform":r"sprites\platform.png",
@@ -46,8 +47,8 @@ sprites = {
 global Platforms
 Platforms = []
 
-global PlatformXY
-PlatformXY = ""
+global SaveData
+SaveData = {"platforms":[]}
 
 #Globals -------------------------------------------------------------------------------
 
@@ -58,6 +59,11 @@ def get_img_size(img):
     img = Image.open(img)
     return img.size
 
+def loadStage(level_data):
+    global Platforms
+    Platforms = []
+    for i in range(0,len(level_data["platforms"])):
+        platform(level_data["platforms"][i][0],level_data["platforms"][i][1])
 #Functions -----------------------------------------------------------------------------
 
 #Objects -------------------------------------------------------------------------------
@@ -131,8 +137,6 @@ class picker:
         #self.origin = self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2) #CollisionPoint
         self.origin = self.Xx, self.Yy
 
-        #Physics --
-
         #H Movement -
         if self.Moved == 0: #add cooldown
             if key_pressed[RightButton]:
@@ -161,9 +165,7 @@ class picker:
                 self.Moved = self.cooldown
         else:
             self.Moved -= 1
-        #H Movement =
-
-        #Physics ==
+        #Movement =
 
         #Animations -------------------------------
         self.anim_counter += 1
@@ -205,8 +207,8 @@ class platform:
         self.image = sprites["platform"]
         self.x = x
         self.y = y
-        global PlatformXY
-        PlatformXY += str(self.x)+":"+str(self.y)+"\n"
+        global SaveData
+        SaveData["platforms"].append([self.x,self.y])
 
     def __del__(self):
         pass
@@ -223,35 +225,51 @@ class menu:
         self.y = 0
         self.hasSaved = 0
         self.hasReset = 0
+        self.hasLoaded = 0
+        self.Dels = 0
 
     def __del__(self):
-        pass
+        for i in range(0,self.Dels):
+            del Pictures[len(Pictures)-1]
         #delete obj
 
     def update(self):
         view.draw(self.image,self.x,self.y)
         global Platforms
+
         if key_pressed[S_Button] and self.hasSaved == 0:
-            global PlatformXY
+            global SaveData
             self.hasSaved = 1
-            with open('expo.txt', 'w') as f:
-                f.write(str(PlatformXY))
-                print("written")
+            with open('data\exported.json', 'w') as f:
+                f.write(json.dumps(SaveData))
             f.close()
-        if key_pressed[R_Button]:
+            picture(sprites["menu"][1], 16, 32, "front")
+            self.Dels += 1
+
+        if key_pressed[R_Button] and self.hasReset == 0:
             for each in Platforms:
                 del each
             Platforms = []
-            PlatformXY = []
+            SaveData["platforms"] = []
             self.hasReset = 1
-        if self.hasReset == 1:
-            if self.hasSaved == 0:
-                self.image = sprites["menu"][1]
-            else:
-                self.image = sprites["menu"][3]
-        if self.hasSaved == 1:
-            if self.hasReset == 0:
-                self.image = sprites["menu"][2]
+            picture(sprites["menu"][1], 16, 48, "front")
+            self.Dels += 1
+
+        if key_pressed[L_Button] and self.hasLoaded < 1:
+            try:
+                self.hasLoaded = 1
+                with open(r"data\to_import.json") as json_file:
+                    print("opened")
+                    JF = json.load(json_file)
+                json_file.close()
+                loadStage(JF)
+                picture(sprites["menu"][1], 16, 64, "front")
+                self.Dels += 1
+            except:
+                picture(sprites["menu"][2], 16, 64, "front")
+                #file doesnt exist
+                self.Dels += 1
+
 class picture:
 
     def __init__(self,img,x,y,layer):
@@ -307,11 +325,15 @@ while run:
     #Update Objs [START]#
         
     for each in Pictures:
-        each.update()
+        if each.layer == "back":
+            each.update()
     view.update()
     for each in Platforms:
         each.update()
     picker.update()
+    for each in Pictures:
+        if each.layer == "front":
+            each.update()
 
     #Update Objs [END]#
 
