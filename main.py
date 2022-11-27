@@ -69,6 +69,9 @@ def place_meeting(xy,mask,offsetX,offsetY,Type):
                 if offsetY > 0:
                     if x >= each.x - (get_img_size(each.image)[0]) / 2 and x < each.x + (get_img_size(each.image)[0]) + (get_img_size(each.image)[0] - 1) and each.y == y + offsetY:  # meeting platform at x,(y + offsetY):
                         return True
+                if offsetY < 0:
+                    if x >= each.x - (get_img_size(each.image)[0]) / 2 and x < each.x + (get_img_size(each.image)[0]) + (get_img_size(each.image)[0] - 1) and each.y == y + offsetY:  # TO EDIT meeting platform at x,(y + offsetY):
+                        return True
         return False
 
 #Functions -----------------------------------------------------------------------------
@@ -129,6 +132,7 @@ class player:
         self.GForce = 0.1
         self.MaxGrav = 2
         self.Falling = 0
+        self.Jumping = 0
         self.status = "idle"
         self.last_status = self.status
         self.dir = 1
@@ -145,6 +149,8 @@ class player:
                 self.status = "idle"
                 self.Vspeed = 0
                 self.Falling = 0
+                self.Jumping = 0
+                self.Gravity = 1
         elif self.Gravity == 1:
             if self.Falling == 0:
                 self.Vspeed = 1
@@ -161,6 +167,9 @@ class player:
         #Gravity =
 
         #H Movement -
+        if key_pressed[JumpButton]:
+            self.status = "air"
+            self.Yy -=2
         if key_pressed[DebugButton]:
             self.x = xRes / 2 - round(get_img_size(self.image)[0] / 2)  # Position on screen (X)
             self.y = yRes / 2 - round(get_img_size(self.image)[1] / 2)  # Position on screen (Y)
