@@ -6,10 +6,10 @@ pygame.init()
 windowIcon = pygame.image.load(r"sprites\icon.png")
 pygame.display.set_icon(windowIcon)
 pygame.display.set_caption('Editor')
-xRes = 256
+xRes = 256 #Window resolution
 yRes = 224
 window = pygame.display.set_mode((xRes, yRes))
-roomX = 256
+roomX = 256 #Room size
 roomY = 224
 preLoadRadius = 32
 clock = pygame.time.Clock()

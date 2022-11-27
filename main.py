@@ -21,6 +21,7 @@ bgColour = (255,255,255)
 
 Platforms = []
 Pictures = []
+Enemies = []
 
 #Globals -------------------------------------------------------------------------------
 
@@ -40,12 +41,10 @@ sprites = {
     "player_run":[r"sprites\player_run_1.png",r"sprites\player_run_2.png",r"sprites\player_run_3.png",r"sprites\player_run_4.png",r"sprites\player_run_3.png"],
     "player_air":r"sprites\player_air.png",
     "player_hp":r"sprites\player_health.png",
-    "player_hpN":r"sprites\player_health_loss.png"
-           }
-
-
-global platforms
-platforms = []
+    "player_hpN":r"sprites\player_health_loss.png",
+    "player_hurt":[r"sprites\player_hurt.png",r"sprites\player_hurt_2.png"],
+    "enemy1_idle":r"sprites\enemy1_idle.png"
+}
 
 #Globals -------------------------------------------------------------------------------
 
@@ -176,7 +175,13 @@ class player:
         self.img_index = 0
         self.hp = 24
         self.hpN = 0
+        self.anim_loops = 0
+        self.max_anim_loops = 0
         self.origin = [self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2)] #CollisionPoint
+
+    def hurt(self,dmg):
+        self.status = "hurt"
+        self.hpN += dmg
 
     def update(self): #Each frame
         self.origin = [self.Xx+round(get_img_size(self.image)[0]/2),self.Yy+round(get_img_size(self.image)[1]/2)] #CollisionPoint
@@ -212,7 +217,6 @@ class player:
         #H Movement -
         if key_pressed[JumpButton]:
             if self.CanJump == 1:
-                self.hpN += 1
                 self.CanJump = 0
                 self.Jumping = 1
                 self.status = "air"
@@ -247,7 +251,7 @@ class player:
         if key_pressed[LeftButton]:
             self.Hspeed = -1
             self.dir = -1
-        if key_pressed[RightButton] == False and key_pressed[LeftButton] == False:
+        if key_pressed[RightButton] == False and key_pressed[LeftButton] == False and self.status != "hurt":
             self.Hspeed = 0
             if self.status == "run":
                 self.status = "idle"
@@ -263,6 +267,11 @@ class player:
         self.anim_counter += 1
         if self.anim_counter > self.anim_counter_max:
             self.anim_counter = 0
+        if self.anim_loops == self.max_anim_loops:
+            if self.status == "hurt":
+                self.status = "idle"
+                self.Hspeed = 0
+            self.max_anim_loops = "null"
         if self.last_status != self.status:
             self.anim_counter = 0
             self.img_index = 0
@@ -272,6 +281,15 @@ class player:
                 self.image = sprites["player_idle"][1]
             else:
                 self.image = sprites["player_idle"][0]
+        if self.status == "hurt":
+            self.max_anim_loops = 10
+            self.Hspeed = self.dir*-1
+            self.anim_counter_max = 4
+            if self.anim_counter >= 3:
+                self.image = sprites["player_hurt"][1]
+                self.anim_loops += 1
+            else:
+                self.image = sprites["player_hurt"][0]
         if self.status == "run":
             self.anim_counter_max = 7
             if self.anim_counter == 0:
@@ -298,6 +316,16 @@ class platform:
     def update(self):
         view.draw(self.image,self.x,self.y)
 
+class enemyOne:
+
+    def __init__(self,x,y):
+        Enemies.append(self)
+        self.image = sprites["enemy1_idle"]
+        self.x = x
+        self.y = y
+
+    def update(self):
+        view.draw(self.image,self.x,self.y)
 
 class picture:
 
@@ -332,7 +360,6 @@ class healthbar:
                 view.draw(self.image, self.x, self.y)
             self.y += 2
 
-
 class background:
 
     def __init__(self):
@@ -350,6 +377,7 @@ class background:
 #Objects -------------------------------------------------------------------------------
 
 player = player()
+aaa = enemyOne(96,96)
 bg = background()
 view = view(player)
 playerHB = healthbar(player)
@@ -376,13 +404,15 @@ while run:
     ########################################################## MAIN
 
     #Update Objs [START]#
-    playerHB.update()
     for each in Pictures:
         each.update()
     view.update()
     for each in Platforms:
         each.update()
+    for each in Enemies:
+        each.update
     player.update()
+    playerHB.update()
 
     #Update Objs [END]#
 
